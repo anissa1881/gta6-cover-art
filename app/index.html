@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Coast Cover Studio — GTA-style cover art maker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ff7b00'/%3E%3Cstop offset='1' stop-color='%23ff2d78'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Neon Coast Cover Studio</h1>
+  <p>Your photos, four panels, one sunset poster — exported as a PNG to share.</p>
+</header>
+<main class="app">
+  <section class="controls" aria-label="Cover editor controls">
+    <div class="step">
+      <h2>1 · Photos</h2>
+      <p class="hint">Your photos stay on your machine — they are read in your browser and never uploaded.</p>
+      <label class="file-label">Choose photos
+        <input id="photo" type="file" accept="image/*" multiple>
+      </label>
+      <button id="samples" type="button">Load the 4 sample photos</button>
+      <div id="tray" class="tray" aria-label="Photo tray"></div>
+    </div>
+
+    <div class="step">
+      <h2>2 · Panels</h2>
+      <div class="row" role="group" aria-label="Panel layout">
+        <button type="button" data-layout="hero" class="active">Hero</button>
+        <button type="button" data-layout="four">Four panels</button>
+        <button type="button" data-layout="strip">Film strip</button>
+      </div>
+      <div class="row" role="group" aria-label="Selected panel">
+        <button type="button" data-panel="0" class="active">Panel 1</button>
+        <button type="button" data-panel="1">Panel 2</button>
+        <button type="button" data-panel="2">Panel 3</button>
+        <button type="button" data-panel="3">Panel 4</button>
+      </div>
+      <label>Photo in this panel
+        <select id="panel-photo"></select>
+      </label>
+      <label>Zoom <span id="zoom-value">100%</span>
+        <input id="zoom" type="range" min="1" max="3" step="0.05" value="1">
+      </label>
+      <div class="row">
+        <button id="fill-all" type="button">Fill all panels</button>
+        <button id="reset-crop" type="button">Reset crop</button>
+      </div>
+      <p class="hint">Click a photo in the tray, then click a panel to place it. Drag a photo inside its panel to frame it.</p>
+    </div>
+
+    <div class="step">
+      <h2>3 · Words &amp; grade</h2>
+      <label>Caption
+        <input id="caption" type="text" maxlength="48" value="Sunset Heist">
+      </label>
+      <label>Tagline
+        <input id="tagline" type="text" maxlength="24" value="Neon Coast">
+      </label>
+      <div class="row" role="group" aria-label="Caption colour">
+        <button type="button" data-color="#ffffff" class="swatch active" style="background:#ffffff" aria-label="White caption">White</button>
+        <button type="button" data-color="#ffd60a" class="swatch" style="background:#ffd60a" aria-label="Yellow caption">Yellow</button>
+        <button type="button" data-color="#ff5da2" class="swatch" style="background:#ff5da2" aria-label="Pink caption">Pink</button>
+      </div>
+      <label>Caption size
+        <input id="caption-size" type="range" min="0.7" max="1.3" step="0.05" value="1">
+      </label>
+      <label class="check"><input id="outline" type="checkbox" checked> Dark outline on the caption</label>
+      <div class="row" role="group" aria-label="Colour grade">
+        <button type="button" data-grade="sunset" class="active">Sunset</button>
+        <button type="button" data-grade="neon">Neon</button>
+        <button type="button" data-grade="gold">Gold hour</button>
+        <button type="button" data-grade="none">No grade</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <h2>4 · Export</h2>
+      <div class="row" role="group" aria-label="Export size">
+        <button type="button" data-size="1080x1080" class="active">1080 × 1080</button>
+        <button type="button" data-size="1080x1350">1080 × 1350</button>
+        <button type="button" data-size="1920x1080">1920 × 1080</button>
+      </div>
+      <button id="export" type="button" class="primary">Export PNG</button>
+      <p id="status" role="status">Pick a photo to begin.</p>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="Live cover preview">
+    <canvas id="cover" width="1080" height="1080" aria-label="The cover preview"></canvas>
+    <p class="hint">Live preview — what you see is what the PNG will be.</p>
+  </section>
+</main>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
