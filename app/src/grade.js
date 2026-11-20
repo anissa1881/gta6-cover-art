@@ -1,51 +1,70 @@
-// Colour grades: a Vice City sunset or neon wash laid over each photo. A grade is a
-// top and bottom colour blended over the photo in soft light, plus a photo filter
-// (saturation and contrast) applied while the photo is drawn.
+// Colour grades for the poster.
+//
+// A grade is a canvas filter applied while each photo is drawn, plus a
+// soft-light gradient washed over the whole poster afterwards. `none`
+// leaves the photos exactly as they are.
 
-export const GRADES = ['sunset', 'neon', 'gold', 'none'];
-
-export const GRADE_DEFS = {
+export const GRADES = {
   sunset: {
     label: 'Sunset',
-    top: '#ff9a3d',
-    bottom: '#ff2d78',
-    alpha: 0.3,
-    filter: 'saturate(1.3) contrast(1.07) brightness(1.02)',
+    filter: 'saturate(1.3) contrast(1.06) sepia(0.22)',
+    wash: ['rgba(255, 122, 26, 0.22)', 'rgba(255, 46, 136, 0.14)'],
+    angle: 180,
   },
   neon: {
     label: 'Neon',
-    top: '#ff2fb3',
-    bottom: '#22d3ee',
-    alpha: 0.34,
-    filter: 'saturate(1.35) contrast(1.08)',
+    filter: 'saturate(1.55) contrast(1.12) hue-rotate(-10deg)',
+    wash: ['rgba(255, 0, 160, 0.18)', 'rgba(0, 214, 255, 0.16)'],
+    angle: 135,
   },
   gold: {
     label: 'Gold hour',
-    top: '#ffd166',
-    bottom: '#ff7b00',
-    alpha: 0.3,
-    filter: 'saturate(1.25) contrast(1.05) brightness(1.03)',
+    filter: 'saturate(1.18) contrast(1.05) sepia(0.38)',
+    wash: ['rgba(255, 196, 66, 0.2)', 'rgba(255, 140, 0, 0.1)'],
+    angle: 180,
   },
   none: {
-    label: 'No grade',
-    top: '#ffffff',
-    bottom: '#ffffff',
-    alpha: 0,
+    label: 'None',
     filter: 'none',
+    wash: null,
+    angle: 180,
   },
 };
 
-/** Paints a grade's wash over a panel rectangle. */
-export function gradeOverlay(ctx, gradeName, rect) {
-  const grade = GRADE_DEFS[gradeName] ?? GRADE_DEFS.sunset;
-  if (grade.alpha <= 0) return;
-  const wash = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h);
-  wash.addColorStop(0, grade.top);
-  wash.addColorStop(1, grade.bottom);
+// The grade names, in the order the editor shows them.
+export const GRADE_NAMES = Object.keys(GRADES);
+
+// Return the grade for a name, falling back to sunset.
+export function getGrade(name) {
+  return GRADES[name] ?? GRADES.sunset;
+}
+
+// Wash the grade's gradient over the poster with a soft-light blend.
+export function washGrade(ctx, grade, width, height) {
+  if (!grade.wash) return;
+  const radians = (grade.angle * Math.PI) / 180;
+  const dx = Math.cos(radians) * width;
+  const dy = Math.sin(radians) * height;
+  const wash = ctx.createLinearGradient(0, 0, dx, dy);
+  wash.addColorStop(0, grade.wash[0]);
+  wash.addColorStop(1, grade.wash[1]);
   ctx.save();
   ctx.globalCompositeOperation = 'soft-light';
-  ctx.globalAlpha = grade.alpha;
   ctx.fillStyle = wash;
-  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+}
+
+// Darken the poster's corners a little, so the caption reads anywhere.
+export function vignette(ctx, width, height) {
+  const glow = ctx.createRadialGradient(
+    width / 2, height / 2, Math.min(width, height) * 0.42,
+    width / 2, height / 2, Math.max(width, height) * 0.72,
+  );
+  glow.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0.28)');
+  ctx.save();
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
   ctx.restore();
 }

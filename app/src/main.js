@@ -1,398 +1,390 @@
-// Neon Coast Cover Studio: wires the page. Pick photos, place one in each panel,
-// crop and position by dragging, write the caption, pick a grade, export a PNG.
-// Photos are read on this machine with FileReader and never leave it.
-// A `?shot=` query sets up a fixed scene for a screenshot instead (./shots.js).
+// Neon Coast Cover Studio: the editor wiring.
+//
+// State lives in one plain object; every control edits it and calls draw().
+// Photos stay on the machine: file uploads are read with FileReader and
+// the samples are plain files under samples/.
 
-import { drawCover, exportCoverPng } from './cover.js';
-import { layoutPanels, panelAt } from './layouts.js';
-import { GRADES, GRADE_DEFS } from './grade.js';
-import { runShot, loadSamplePhoto } from './shots.js';
+import { drawPoster, exportPosterPNG } from './cover.js';
+import { getLayout, toPixels, LAYOUT_NAMES } from './layouts.js';
+import { GRADE_NAMES } from './grade.js';
+import { runShot } from './shots.js';
 
-export const SIZES = {
-  '1080x1080': [1080, 1080],
-  '1080x1350': [1080, 1350],
-  '1920x1080': [1920, 1080],
-};
-
-const SAMPLE_NAMES = ['beach-sunset', 'neon-street', 'pier', 'boulevard'];
-
-const canvas = document.getElementById('cover');
-const status = document.getElementById('status');
-const tray = document.getElementById('tray');
-const panelPhotoSelect = document.getElementById('panel-photo');
-const zoomSlider = document.getElementById('zoom');
-const zoomValue = document.getElementById('zoom-value');
+const SAMPLES = ['beach-sunset', 'pier', 'neon-street', 'boulevard'];
+const POSTER_SIZES = [
+  { label: 'Square 1080 × 1080', w: 1080, h: 1080 },
+  { label: 'Portrait 1080 × 1350', w: 1080, h: 1350 },
+  { label: 'Wide 1920 × 1080', w: 1920, h: 1080 },
+];
 
 const state = {
+  photos: [],
+  frames: [
+    { photo: '', zoom: 1, ox: 0, oy: 0 },
+    { photo: '', zoom: 1, ox: 0, oy: 0 },
+    { photo: '', zoom: 1, ox: 0, oy: 0 },
+    { photo: '', zoom: 1, ox: 0, oy: 0 },
+  ],
+  activePanel: 0,
+  selectedPhoto: '',
   layout: 'hero',
   grade: 'sunset',
-  caption: 'Sunset Heist',
-  tagline: 'Neon Coast',
+  tagline: 'NEON COAST',
+  caption: 'SUNSET HEIST',
   captionColor: '#ffffff',
   captionSize: 1,
   outline: true,
-  size: '1080x1080',
-  photos: [],
-  panels: [0, 1, 2, 3].map(() => ({ img: null, photoId: null, zoom: 1, ox: 0, oy: 0 })),
-  selectedPanel: 0,
+  posterSize: POSTER_SIZES[0],
 };
 
-let activePhotoId = null;
 let photoCounter = 0;
-let redrawQueued = false;
+let samplesLoaded = false;
 
-function redraw() {
-  if (redrawQueued) return;
-  redrawQueued = true;
-  requestAnimationFrame(() => {
-    redrawQueued = false;
-    drawCover(canvas, state);
-  });
-}
+const $ = (id) => document.getElementById(id);
+const canvas = $('poster');
+const ctx = canvas.getContext('2d');
 
-function redrawNow() {
-  drawCover(canvas, state);
-}
-
-function setStatus(text) {
-  status.textContent = text;
-}
-
-/** Adds an image to the photo tray and returns its id. */
-function addTrayPhoto(img, name) {
-  const id = `photo-${++photoCounter}`;
-  state.photos.push({ id, name, img });
-  renderTray();
-  return id;
-}
-
-function renderTray() {
-  tray.innerHTML = '';
-  for (const photo of state.photos) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'thumb' + (photo.id === activePhotoId ? ' active' : '');
-    button.title = photo.name;
-    const thumb = document.createElement('img');
-    thumb.src = photo.img.src;
-    thumb.alt = photo.name;
-    button.append(thumb);
-    button.addEventListener('click', () => {
-      activePhotoId = photo.id;
-      renderTray();
-      setStatus(`Photo "${photo.name}" chosen — click a panel to place it.`);
-    });
-    tray.append(button);
-  }
-  renderPanelPhotoSelect();
-}
-
-function renderPanelPhotoSelect() {
-  const current = state.panels[state.selectedPanel].photoId;
-  panelPhotoSelect.innerHTML = '<option value="">— empty —</option>';
-  for (const photo of state.photos) {
-    const option = document.createElement('option');
-    option.value = photo.id;
-    option.textContent = photo.name;
-    if (photo.id === current) option.selected = true;
-    panelPhotoSelect.append(option);
-  }
-}
-
-/** Places a tray photo into a panel (keeping that panel's crop). */
-function assignPhotoToPanel(photoId, panelIndex) {
-  const photo = state.photos.find((p) => p.id === photoId);
-  const slot = state.panels[panelIndex];
-  if (photo) {
-    slot.img = photo.img;
-    slot.photoId = photo.id;
-  } else {
-    slot.img = null;
-    slot.photoId = null;
-  }
-  state.selectedPanel = panelIndex;
-  syncPanelControls();
-  redraw();
-}
-
-function syncPanelControls() {
-  document.querySelectorAll('[data-panel]').forEach((button) => {
-    button.classList.toggle('active', Number(button.dataset.panel) === state.selectedPanel);
-  });
-  const slot = state.panels[state.selectedPanel];
-  zoomSlider.value = String(slot.zoom);
-  zoomValue.textContent = `${Math.round(slot.zoom * 100)}%`;
-  renderPanelPhotoSelect();
-}
-
-/** Loads an image from a URL, resolving to the image once it can be drawn. */
-export function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
-}
-
-// --- Step 1: photos ---------------------------------------------------------
-
-document.getElementById('photo').addEventListener('change', async (e) => {
-  const files = [...e.target.files];
-  for (const file of files) {
-    if (state.photos.length >= 8) {
-      setStatus('The tray holds 8 photos at most.');
-      break;
-    }
-    try {
-      const img = await loadImage(URL.createObjectURL(file));
-      const id = addTrayPhoto(img, file.name);
-      if (!activePhotoId) activePhotoId = id;
-    } catch {
-      setStatus(`Could not read "${file.name}".`);
-    }
-  }
-  e.target.value = '';
-  if (state.photos.length) {
-    setStatus(`${state.photos.length} photo(s) in the tray — click one, then a panel.`);
-  }
-  redraw();
-});
-
-document.getElementById('samples').addEventListener('click', async () => {
-  for (const name of SAMPLE_NAMES) {
-    if (state.photos.some((p) => p.name === `${name}.jpg`)) continue;
-    const img = await loadSamplePhoto(name);
-    addTrayPhoto(img, `${name}.jpg`);
-  }
-  SAMPLE_NAMES.forEach((name, i) => {
-    const photo = state.photos.find((p) => p.name === `${name}.jpg`);
-    if (photo) assignPhotoToPanel(photo.id, i);
-  });
-  activePhotoId = state.photos[0]?.id ?? null;
-  renderTray();
-  setStatus('Sample photos loaded — one in each panel.');
-  redraw();
-});
-
-// --- Step 2: panels ---------------------------------------------------------
-
-document.querySelectorAll('[data-layout]').forEach((button) => {
-  button.addEventListener('click', () => {
-    state.layout = button.dataset.layout;
-    document.querySelectorAll('[data-layout]').forEach((b) => {
-      b.classList.toggle('active', b === button);
-    });
-    redraw();
-  });
-});
-
-document.querySelectorAll('[data-panel]').forEach((button) => {
-  button.addEventListener('click', () => {
-    state.selectedPanel = Number(button.dataset.panel);
-    syncPanelControls();
-    redraw();
-  });
-});
-
-panelPhotoSelect.addEventListener('change', () => {
-  assignPhotoToPanel(panelPhotoSelect.value || null, state.selectedPanel);
-});
-
-zoomSlider.addEventListener('input', () => {
-  const slot = state.panels[state.selectedPanel];
-  slot.zoom = Number(zoomSlider.value);
-  zoomValue.textContent = `${Math.round(slot.zoom * 100)}%`;
-  redraw();
-});
-
-document.getElementById('fill-all').addEventListener('click', () => {
-  const slot = state.panels[state.selectedPanel];
-  if (!slot.img) {
-    setStatus('Pick a photo for this panel first.');
-    return;
-  }
-  for (const panel of state.panels) {
-    panel.img = slot.img;
-    panel.photoId = slot.photoId;
-    panel.zoom = 1;
-    panel.ox = 0;
-    panel.oy = 0;
-  }
-  syncPanelControls();
-  redraw();
-  setStatus('One photo fills all four panels — drag each to frame it.');
-});
-
-document.getElementById('reset-crop').addEventListener('click', () => {
-  const slot = state.panels[state.selectedPanel];
-  slot.zoom = 1;
-  slot.ox = 0;
-  slot.oy = 0;
-  syncPanelControls();
-  redraw();
-});
-
-// Drag a photo inside its panel to position it; a plain click places the photo.
-let drag = null;
-function canvasPoint(event) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: (event.clientX - rect.left) * (canvas.width / rect.width),
-    y: (event.clientY - rect.top) * (canvas.height / rect.height),
-  };
-}
-canvas.addEventListener('pointerdown', (event) => {
-  const point = canvasPoint(event);
-  const { panels } = layoutPanels(state.layout, canvas.width, canvas.height);
-  const index = panelAt(panels, point.x, point.y);
-  if (index === -1) return;
-  const slot = state.panels[index];
-  canvas.setPointerCapture(event.pointerId);
-  drag = { index, startX: point.x, startY: point.y, ox: slot.ox, oy: slot.oy, moved: false };
-  state.selectedPanel = index;
-  syncPanelControls();
-});
-canvas.addEventListener('pointermove', (event) => {
-  if (!drag) return;
-  const point = canvasPoint(event);
-  const dx = point.x - drag.startX;
-  const dy = point.y - drag.startY;
-  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
-  if (!drag.moved) return;
-  const slot = state.panels[drag.index];
-  slot.ox = drag.ox + dx;
-  slot.oy = drag.oy + dy;
-  redraw();
-});
-canvas.addEventListener('pointerup', (event) => {
-  if (!drag) return;
-  if (!drag.moved && activePhotoId) {
-    assignPhotoToPanel(activePhotoId, drag.index);
-    setStatus('Photo placed in the panel — drag it to frame the shot.');
-  }
-  drag = null;
-});
-
-// --- Step 3: words and grade -----------------------------------------------
-
-document.getElementById('caption').addEventListener('input', (e) => {
-  state.caption = e.target.value;
-  redraw();
-});
-document.getElementById('tagline').addEventListener('input', (e) => {
-  state.tagline = e.target.value;
-  redraw();
-});
-document.querySelectorAll('[data-color]').forEach((button) => {
-  button.addEventListener('click', () => {
-    state.captionColor = button.dataset.color;
-    document.querySelectorAll('[data-color]').forEach((b) => {
-      b.classList.toggle('active', b === button);
-    });
-    redraw();
-  });
-});
-document.getElementById('caption-size').addEventListener('input', (e) => {
-  state.captionSize = Number(e.target.value);
-  redraw();
-});
-document.getElementById('outline').addEventListener('change', (e) => {
-  state.outline = e.target.checked;
-  redraw();
-});
-document.querySelectorAll('[data-grade]').forEach((button) => {
-  button.addEventListener('click', () => {
-    state.grade = button.dataset.grade;
-    document.querySelectorAll('[data-grade]').forEach((b) => {
-      b.classList.toggle('active', b === button);
-    });
-    redraw();
-  });
-});
-
-// --- Step 4: export ---------------------------------------------------------
-
-function setExportSize(size) {
-  state.size = size;
-  const [w, h] = SIZES[size];
-  canvas.width = w;
-  canvas.height = h;
-  document.querySelectorAll('[data-size]').forEach((b) => {
-    b.classList.toggle('active', b.dataset.size === size);
-  });
-  redraw();
-}
-document.querySelectorAll('[data-size]').forEach((button) => {
-  button.addEventListener('click', () => setExportSize(button.dataset.size));
-});
-
-document.getElementById('export').addEventListener('click', async () => {
-  const [w, h] = SIZES[state.size];
-  setStatus('Exporting…');
-  const blob = await exportCoverPng(state, w, h);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `neon-coast-cover-${w}x${h}.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-  setStatus(`Saved neon-coast-cover-${w}x${h}.png`);
-});
-
-// --- Start ------------------------------------------------------------------
-
-async function start() {
+// The poster fonts, loaded once before the first draw so canvas text
+// uses Bebas Neue and Archivo Black instead of a fallback.
+const fontsReady = (async () => {
   try {
     await Promise.all([
       document.fonts.load('100px "Bebas Neue"'),
-      document.fonts.load('100px "Archivo Black"'),
+      document.fonts.load('40px "Archivo Black"'),
     ]);
-  } catch { /* the canvas falls back to sans-serif */ }
-  const query = new URLSearchParams(location.search);
-  const shot = query.get('shot');
-  if (shot) {
-    const size = query.get('size');
-    if (size && SIZES[size]) setExportSize(size);
-    await runShot(shot, query, (scene) => {
-      state.layout = scene.layout;
-      state.grade = scene.grade;
-      state.caption = scene.caption;
-      state.tagline = scene.tagline;
-      state.captionColor = scene.captionColor;
-      document.getElementById('caption').value = scene.caption;
-      document.getElementById('tagline').value = scene.tagline;
-      for (const photo of scene.photos) {
-        const id = addTrayPhoto(photo.img, photo.name);
-        if (photo.id === scene.photos[0].id) activePhotoId = id;
+    await document.fonts.ready;
+  } catch {
+    // A fallback font still draws; the words just look plainer.
+  }
+})();
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`could not load ${src}`));
+    img.src = src;
+  });
+}
+
+function addPhoto(name, src, img) {
+  const id = `photo-${++photoCounter}`;
+  state.photos.push({ id, name, src, img });
+  return id;
+}
+
+async function loadSamples() {
+  if (samplesLoaded) return;
+  const loaded = await Promise.all(
+    SAMPLES.map(async (name) => {
+      const img = await loadImage(`samples/${name}.jpg`);
+      return { name, img };
+    }),
+  );
+  loaded.forEach(({ name, img }, i) => {
+    const id = addPhoto(name, `samples/${name}.jpg`, img);
+    state.frames[i].photo = id;
+  });
+  state.selectedPhoto = state.frames[0].photo;
+  samplesLoaded = true;
+  renderTray();
+  renderPanelPhotoOptions();
+}
+
+// The tray of photo thumbnails. Clicking one selects it and puts it in
+// the active panel.
+function renderTray() {
+  const tray = $('tray');
+  tray.textContent = '';
+  state.photos.forEach((photo) => {
+    const thumb = document.createElement('img');
+    thumb.src = photo.src;
+    thumb.alt = photo.name;
+    thumb.className = 'thumb' + (photo.id === state.selectedPhoto ? ' selected' : '');
+    thumb.addEventListener('click', () => {
+      state.selectedPhoto = photo.id;
+      state.frames[state.activePanel].photo = photo.id;
+      renderTray();
+      renderPanelPhotoOptions();
+      draw();
+    });
+    tray.appendChild(thumb);
+  });
+}
+
+// The "Photo in this panel" dropdown, rebuilt whenever photos change.
+function renderPanelPhotoOptions() {
+  const select = $('panelPhoto');
+  select.textContent = '';
+  const empty = document.createElement('option');
+  empty.value = '';
+  empty.textContent = '— empty —';
+  select.appendChild(empty);
+  state.photos.forEach((photo) => {
+    const option = document.createElement('option');
+    option.value = photo.id;
+    option.textContent = photo.name;
+    select.appendChild(option);
+  });
+  select.value = state.frames[state.activePanel].photo;
+}
+
+function syncControls() {
+  document.querySelectorAll('#layoutRow button').forEach((button) => {
+    button.classList.toggle('active', button.dataset.layout === state.layout);
+  });
+  document.querySelectorAll('#gradeRow button').forEach((button) => {
+    button.classList.toggle('active', button.dataset.grade === state.grade);
+  });
+  document.querySelectorAll('#panelRow button').forEach((button) => {
+    button.classList.toggle('active', Number(button.dataset.panel) === state.activePanel);
+  });
+  document.querySelectorAll('#sizeRow button').forEach((button) => {
+    button.classList.toggle(
+      'active',
+      Number(button.dataset.w) === state.posterSize.w && Number(button.dataset.h) === state.posterSize.h,
+    );
+  });
+  $('tagline').value = state.tagline;
+  $('caption').value = state.caption;
+  $('captionColor').value = state.captionColor;
+  $('captionSize').value = String(Math.round(state.captionSize * 100));
+  $('captionOutline').checked = state.outline;
+  const frame = state.frames[state.activePanel];
+  $('zoom').value = String(Math.round(frame.zoom * 100));
+  $('zoomValue').textContent = `${Math.round(frame.zoom * 100)}%`;
+  renderPanelPhotoOptions();
+}
+
+async function draw() {
+  await fontsReady;
+  drawPoster(ctx, state, canvas.width, canvas.height);
+}
+
+function setLayout(name) {
+  state.layout = name;
+  syncControls();
+  draw();
+}
+
+function setGrade(name) {
+  state.grade = name;
+  syncControls();
+  draw();
+}
+
+function setCaption(text) {
+  state.caption = text;
+  syncControls();
+  draw();
+}
+
+function setTagline(text) {
+  state.tagline = text;
+  syncControls();
+  draw();
+}
+
+function setPosterSize(w, h) {
+  state.posterSize = POSTER_SIZES.find((s) => s.w === w && s.h === h) ?? { label: `${w} × ${h}`, w, h };
+  canvas.width = w;
+  canvas.height = h;
+  syncControls();
+  draw();
+}
+
+// Frame the first panel by a fraction of its size (used by ?shot=pan).
+function panFirstPanel(fx, fy) {
+  const layout = getLayout(state.layout);
+  const panel = toPixels(layout.panels[0], canvas.width, canvas.height);
+  state.frames[0].ox = fx * panel.w;
+  state.frames[0].oy = fy * panel.h;
+}
+
+async function downloadPoster(w, h) {
+  const blob = await exportPosterPNG(state, w, h);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `neon-coast-cover-${w}x${h}.png`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  $('status').textContent = `Exported neon-coast-cover-${w}x${h}.png`;
+}
+
+// Drag a photo inside its panel to frame it: find the panel under the
+// pointer, then move that frame's pan, clamped so the photo still covers.
+function panelAt(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const x = ((clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((clientY - rect.top) / rect.height) * canvas.height;
+  const layout = getLayout(state.layout);
+  const index = layout.panels.findIndex((r) => {
+    const p = toPixels(r, canvas.width, canvas.height);
+    return x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h;
+  });
+  return { index, x, y, rect };
+}
+
+function clampPan(frame, photo, panel) {
+  if (!photo || !photo.img) return;
+  const base = Math.max(panel.w / photo.img.naturalWidth, panel.h / photo.img.naturalHeight);
+  const dw = photo.img.naturalWidth * base * frame.zoom;
+  const dh = photo.img.naturalHeight * base * frame.zoom;
+  const maxOx = Math.max(0, (dw - panel.w) / 2);
+  const maxOy = Math.max(0, (dh - panel.h) / 2);
+  frame.ox = Math.max(-maxOx, Math.min(maxOx, frame.ox));
+  frame.oy = Math.max(-maxOy, Math.min(maxOy, frame.oy));
+}
+
+function wireDrag() {
+  let drag = null;
+  canvas.addEventListener('pointerdown', (event) => {
+    const hit = panelAt(event.clientX, event.clientY);
+    if (hit.index < 0) return;
+    state.activePanel = hit.index;
+    syncControls();
+    drag = { x: hit.x, y: hit.y, rect: hit.rect };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const frame = state.frames[state.activePanel];
+    const photo = state.photos.find((p) => p.id === frame.photo);
+    const layout = getLayout(state.layout);
+    const panel = toPixels(layout.panels[state.activePanel], canvas.width, canvas.height);
+    const now = panelAt(event.clientX, event.clientY);
+    frame.ox += (now.x - drag.x);
+    frame.oy += (now.y - drag.y);
+    drag.x = now.x;
+    drag.y = now.y;
+    clampPan(frame, photo, panel);
+    draw();
+  });
+  const endDrag = () => { drag = null; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+}
+
+function wireControls() {
+  $('photoFiles').addEventListener('change', async (event) => {
+    for (const file of event.target.files) {
+      const src = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+      try {
+        const img = await loadImage(src);
+        const id = addPhoto(file.name, src, img);
+        state.selectedPhoto = id;
+        state.frames[state.activePanel].photo = id;
+      } catch {
+        $('status').textContent = `Could not read ${file.name}`;
       }
-      scene.photos.forEach((photo, i) => {
-        const placed = state.photos.find((p) => p.name === photo.name);
-        if (placed) assignPhotoToPanel(placed.id, i);
-      });
-      // A fixed pan per panel (fractions of the panel height, positive moves the
-      // photo down): the same framing a user sets by dragging a photo.
-      if (scene.pan) {
-        const { panels } = layoutPanels(state.layout, canvas.width, canvas.height);
-        scene.pan.split(',').forEach((value, i) => {
-          const fraction = Number(value);
-          if (Number.isFinite(fraction) && state.panels[i]) {
-            state.panels[i].oy = fraction * panels[i].h;
-          }
-        });
-      }
-      document.querySelectorAll('[data-layout]').forEach((b) => {
-        b.classList.toggle('active', b.dataset.layout === state.layout);
-      });
-      document.querySelectorAll('[data-grade]').forEach((b) => {
-        b.classList.toggle('active', b.dataset.grade === state.grade);
-      });
-      redrawNow();
+    }
+    renderTray();
+    renderPanelPhotoOptions();
+    draw();
+  });
+
+  $('loadSamples').addEventListener('click', async () => {
+    await loadSamples();
+    draw();
+  });
+
+  document.querySelectorAll('#layoutRow button').forEach((button) => {
+    button.addEventListener('click', () => setLayout(button.dataset.layout));
+  });
+  document.querySelectorAll('#gradeRow button').forEach((button) => {
+    button.addEventListener('click', () => setGrade(button.dataset.grade));
+  });
+  document.querySelectorAll('#panelRow button').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.activePanel = Number(button.dataset.panel);
+      syncControls();
+      draw();
+    });
+  });
+  document.querySelectorAll('#sizeRow button').forEach((button) => {
+    button.addEventListener('click', () => setPosterSize(Number(button.dataset.w), Number(button.dataset.h)));
+  });
+
+  $('panelPhoto').addEventListener('change', (event) => {
+    state.frames[state.activePanel].photo = event.target.value;
+    state.selectedPhoto = event.target.value || state.selectedPhoto;
+    renderTray();
+    draw();
+  });
+  $('zoom').addEventListener('input', (event) => {
+    const frame = state.frames[state.activePanel];
+    frame.zoom = Number(event.target.value) / 100;
+    const photo = state.photos.find((p) => p.id === frame.photo);
+    const layout = getLayout(state.layout);
+    clampPan(frame, photo, toPixels(layout.panels[state.activePanel], canvas.width, canvas.height));
+    $('zoomValue').textContent = `${event.target.value}%`;
+    draw();
+  });
+  $('tagline').addEventListener('input', (event) => {
+    state.tagline = event.target.value;
+    draw();
+  });
+  $('caption').addEventListener('input', (event) => {
+    state.caption = event.target.value;
+    draw();
+  });
+  $('captionColor').addEventListener('input', (event) => {
+    state.captionColor = event.target.value;
+    draw();
+  });
+  $('captionSize').addEventListener('input', (event) => {
+    state.captionSize = Number(event.target.value) / 100;
+    draw();
+  });
+  $('captionOutline').addEventListener('change', (event) => {
+    state.outline = event.target.checked;
+    draw();
+  });
+
+  $('exportSquare').addEventListener('click', () => downloadPoster(1080, 1080));
+  $('exportPortrait').addEventListener('click', () => downloadPoster(1080, 1350));
+  $('exportWide').addEventListener('click', () => downloadPoster(1920, 1080));
+}
+
+// The handle the play test and the screenshot scenes use.
+window.__neonCoast = {
+  state,
+  draw,
+  loadSamples,
+  setLayout,
+  setGrade,
+  setCaption,
+  setTagline,
+  setPosterSize,
+  panFirstPanel,
+  exportPosterPNG: (w, h) => exportPosterPNG(state, w, h),
+  downloadPoster,
+};
+
+async function init() {
+  wireControls();
+  wireDrag();
+  syncControls();
+  const query = new URLSearchParams(window.location.search);
+  if (query.has('shot')) {
+    await runShot(query, {
+      loadSamples,
+      setLayout,
+      setGrade,
+      setCaption,
+      setTagline,
+      setPosterSize,
+      panFirstPanel,
+      draw,
     });
   } else {
-    redrawNow();
+    await loadSamples();
+    await draw();
   }
 }
 
-// For play-tests and screenshots: the live state and a forced redraw.
-window.__app = { state, redrawNow, exportCoverPng, SIZES };
-start();
+init();
