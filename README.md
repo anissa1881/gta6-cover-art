@@ -43,8 +43,8 @@ mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
 ## Credits
 
-- Fonts: Bebas Neue and Archivo Black, both under the SIL Open Font
-  License 1.1 (see `app/fonts/`).
+- Fonts: system fonts only (no vendored font files), so the app works fully
+  offline with nothing to download.
 - Sample photos: the two kit samples plus two images made with an image
   model for this entry (no real person's photo, no Rockstar artwork).
 

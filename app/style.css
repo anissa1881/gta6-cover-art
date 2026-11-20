@@ -2,20 +2,8 @@
    a sticky live preview on the right. The poster itself is drawn on a
    canvas, so the page only styles the chrome around it. */
 
-@font-face {
-  font-family: 'Bebas Neue';
-  src: url('./fonts/BebasNeue-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Archivo Black';
-  src: url('./fonts/ArchivoBlack-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* Fonts: the studio uses system fonts only, so no font files are vendored
+   and the page makes no font requests. */
 
 :root {
   --bg: #0d0a14;
@@ -57,7 +45,8 @@ html, body {
 
 .controls header h1 {
   margin: 0;
-  font-family: 'Archivo Black', sans-serif;
+  font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 900;
   font-size: 30px;
   line-height: 1.05;
   letter-spacing: 0.5px;
@@ -68,7 +57,8 @@ html, body {
 .controls section { display: flex; flex-direction: column; gap: 12px; }
 .controls h2 {
   margin: 0;
-  font-family: 'Archivo Black', sans-serif;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 800;
   font-size: 13px;
   letter-spacing: 2px;
   text-transform: uppercase;

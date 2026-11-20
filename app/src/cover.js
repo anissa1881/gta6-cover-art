@@ -9,8 +9,10 @@
 import { posterGeometry } from './layouts.js';
 import { paintGrade } from './grade.js';
 
-export const TAGLINE_FONT = '"Archivo Black", sans-serif';
-export const CAPTION_FONT = '"Bebas Neue", sans-serif';
+export const TAGLINE_FONT = '"Helvetica Neue", Arial, sans-serif';
+export const TAGLINE_WEIGHT = 800;
+export const CAPTION_FONT = '"Arial Black", "Helvetica Neue", Arial, sans-serif';
+export const CAPTION_WEIGHT = 900;
 
 /** How a photo sits inside its panel at a zoom: its drawn size and slack. */
 export function photoMetrics(img, rect, zoom) {
@@ -36,12 +38,12 @@ function drawPhotoInto(ctx, img, rect, zoom, ox, oy) {
 }
 
 /** The largest font size (at most `start`) at which `text` fits `maxWidth`. */
-function fitFont(ctx, text, family, maxWidth, start) {
+function fitFont(ctx, text, weight, family, maxWidth, start) {
   let size = start;
-  ctx.font = `${size}px ${family}`;
+  ctx.font = `${weight} ${size}px ${family}`;
   while (size > 10 && ctx.measureText(text).width > maxWidth) {
     size -= 2;
-    ctx.font = `${size}px ${family}`;
+    ctx.font = `${weight} ${size}px ${family}`;
   }
   return size;
 }
@@ -81,7 +83,7 @@ export function renderPoster(canvas, poster) {
 
   if (tagline) {
     const tSize = Math.max(14, Math.round(h * 0.028));
-    ctx.font = `${tSize}px ${TAGLINE_FONT}`;
+    ctx.font = `${TAGLINE_WEIGHT} ${tSize}px ${TAGLINE_FONT}`;
     ctx.letterSpacing = `${Math.round(tSize * 0.32)}px`;
     ctx.fillStyle = '#f5b942';
     ctx.textAlign = 'left';
@@ -97,8 +99,8 @@ export function renderPoster(canvas, poster) {
   if (caption) {
     const maxW = w - pad * 2;
     const start = Math.round(h * 0.155 * (poster.captionScale ?? 1));
-    const size = fitFont(ctx, caption, CAPTION_FONT, maxW, start);
-    ctx.font = `${size}px ${CAPTION_FONT}`;
+    const size = fitFont(ctx, caption, CAPTION_WEIGHT, CAPTION_FONT, maxW, start);
+    ctx.font = `${CAPTION_WEIGHT} ${size}px ${CAPTION_FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     if (poster.outline) {
