@@ -1,3 +1,11 @@
+/* Neon Coast Cover Studio — editor styles.
+   Dark two-column studio: controls on the left, live poster preview
+   pinned to the right. All type in the editor is Archivo Black for
+   headings and buttons, Bebas Neue for the poster caption (drawn on
+   the canvas); body copy is the system stack. */
+
+/* ---- Fonts (shipped with the app, never fetched) ---- */
+
 @font-face {
   font-family: "Bebas Neue";
   src: url("./fonts/BebasNeue-Regular.ttf") format("truetype");
@@ -14,21 +22,28 @@
   font-display: swap;
 }
 
+/* ---- Palette ---- */
+
 :root {
-  --bg: #0d0a14;
-  --panel: #171221;
-  --panel-2: #1f1830;
-  --line: #2c2344;
-  --text: #f2eefc;
-  --muted: #a99ec7;
-  --gold: #f5b942;
-  --pink: #ff2e88;
-  --cyan: #22d3ee;
+  --bg: #0d0a14;        /* page background */
+  --panel: #171221;     /* controls column */
+  --panel-2: #1f1830;   /* fields and buttons */
+  --line: #2c2344;      /* hairlines and borders */
+  --text: #f2eefc;      /* main text */
+  --muted: #a99ec7;     /* secondary text */
+  --gold: #f5b942;      /* headings, accents, selection */
+  --pink: #ff2e88;      /* export actions, sunset glow */
+  --cyan: #22d3ee;      /* status text, neon glow */
 }
+
+/* ---- Base ---- */
 
 * { box-sizing: border-box; }
 
-html, body { margin: 0; padding: 0; }
+html, body {
+  margin: 0;
+  padding: 0;
+}
 
 body {
   background: var(--bg);
@@ -38,11 +53,25 @@ body {
   line-height: 1.45;
 }
 
+/* Keyboard focus must always be visible: a gold ring on every
+   interactive control, so keyboard users can follow where they are. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.file-label:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ---- Two-column studio ---- */
+
 .studio {
   display: grid;
   grid-template-columns: 340px 1fr;
   min-height: 100vh;
 }
+
+/* ---- Left column: the controls ---- */
 
 .controls {
   background: var(--panel);
@@ -55,8 +84,8 @@ body {
   font-family: "Archivo Black", sans-serif;
   font-size: 24px;
   line-height: 1.1;
-  margin: 0 0 6px;
   letter-spacing: 0.5px;
+  margin: 0 0 6px;
 }
 
 .controls header h1 span {
@@ -66,8 +95,8 @@ body {
 
 .controls header p {
   color: var(--muted);
-  margin: 0 0 4px;
   font-size: 14px;
+  margin: 0 0 4px;
 }
 
 .controls section {
@@ -84,6 +113,8 @@ body {
   color: var(--gold);
   margin: 0 0 10px;
 }
+
+/* ---- Fields ---- */
 
 label {
   display: block;
@@ -107,30 +138,23 @@ label select {
 
 label input[type="color"] {
   display: block;
-  margin-top: 4px;
   width: 64px;
   height: 36px;
+  margin-top: 4px;
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-2);
 }
 
-label input[type="range"] { width: 78%; vertical-align: middle; }
+label input[type="range"] {
+  width: 78%;
+  vertical-align: middle;
+}
 
 label.check { color: var(--text); }
 
-.file-label {
-  display: block;
-  padding: 10px 12px;
-  border: 1px dashed var(--gold);
-  border-radius: 8px;
-  text-align: center;
-  color: var(--gold);
-  cursor: pointer;
-}
-
-.file-label input { display: none; }
+/* ---- Buttons and rows ---- */
 
 button {
   font-family: "Archivo Black", sans-serif;
@@ -152,8 +176,6 @@ button.active {
   color: #1a1206;
 }
 
-#loadSamples { width: 100%; margin-top: 8px; }
-
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -171,16 +193,24 @@ button.active {
 
 .export-row button:hover { border-color: #fff; }
 
-.hint, .preview-note {
-  color: var(--muted);
-  font-size: 13px;
+#loadSamples {
+  width: 100%;
+  margin-top: 8px;
 }
 
-#status {
-  color: var(--cyan);
-  min-height: 20px;
-  font-size: 13px;
+/* ---- Photo picker ---- */
+
+.file-label {
+  display: block;
+  padding: 10px 12px;
+  border: 1px dashed var(--gold);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--gold);
+  cursor: pointer;
 }
+
+.file-label input { display: none; }
 
 .tray {
   display: grid;
@@ -190,16 +220,31 @@ button.active {
 }
 
 .thumb {
+  display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 6px;
   border: 2px solid transparent;
   cursor: pointer;
-  display: block;
 }
 
 .thumb.selected { border-color: var(--gold); }
+
+/* ---- Helper text ---- */
+
+.hint, .preview-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#status {
+  color: var(--cyan);
+  font-size: 13px;
+  min-height: 20px;
+}
+
+/* ---- Right column: the live preview ---- */
 
 .preview {
   position: sticky;
@@ -219,10 +264,10 @@ button.active {
 }
 
 #poster {
-  max-width: min(100%, 78vh);
-  max-height: 82vh;
   width: auto;
   height: auto;
+  max-width: min(100%, 78vh);
+  max-height: 82vh;
   border-radius: 4px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   cursor: grab;
@@ -231,7 +276,8 @@ button.active {
 
 #poster:active { cursor: grabbing; }
 
-/* Screenshot scenes: the cover alone, no editor chrome. */
+/* ---- Screenshot scenes: the cover alone, no editor chrome ---- */
+
 body.shot-cover { background: #0b0612; }
 
 body.shot-cover .studio {
@@ -250,6 +296,6 @@ body.shot-cover .preview {
 body.shot-cover #poster {
   max-width: none;
   max-height: none;
-  box-shadow: none;
   border-radius: 0;
+  box-shadow: none;
 }
