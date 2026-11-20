@@ -1,61 +1,39 @@
-// Panel geometry for the three poster layouts.
+// Panel geometry for Neon Coast Cover Studio's three poster layouts.
 //
-// Every rect is a fraction of the poster (0..1), so one layout works at
-// every export size. A layout has four panel rects and one caption rect:
-// the band the tagline and caption sit in. The gutter between panels is
-// the poster's dark background showing through.
+// Every layout returns the four photo panels as pixel rects inside the
+// poster's photo area, plus the caption band below it. A rect is
+// { x, y, w, h } in poster pixels; a panel with a zero width or height is
+// not drawn. The photo area is the top of the poster, the caption band the
+// bottom quarter.
 
-const GUTTER = 0.014;
-const BAND = 0.22;
+export const LAYOUTS = ['hero', 'four', 'strip'];
 
-export const LAYOUTS = {
-  hero: {
-    label: 'Hero',
-    hint: 'One big photo, words along the bottom',
-    panels: [{ x: 0, y: 0, w: 1, h: 1 - BAND }],
-    caption: { x: 0, y: 1 - BAND, w: 1, h: BAND },
-    vertical: false,
-  },
-  four: {
-    label: 'Four panels',
-    hint: 'A 2 by 2 grid, words along the bottom',
-    panels: [
-      { x: 0, y: 0, w: 0.5 - GUTTER / 2, h: (1 - BAND) / 2 - GUTTER / 2 },
-      { x: 0.5 + GUTTER / 2, y: 0, w: 0.5 - GUTTER / 2, h: (1 - BAND) / 2 - GUTTER / 2 },
-      { x: 0, y: (1 - BAND) / 2 + GUTTER / 2, w: 0.5 - GUTTER / 2, h: (1 - BAND) / 2 - GUTTER / 2 },
-      { x: 0.5 + GUTTER / 2, y: (1 - BAND) / 2 + GUTTER / 2, w: 0.5 - GUTTER / 2, h: (1 - BAND) / 2 - GUTTER / 2 },
-    ],
-    caption: { x: 0, y: 1 - BAND, w: 1, h: BAND },
-    vertical: false,
-  },
-  strip: {
-    label: 'Film strip',
-    hint: 'Four stacked frames on the left, words on the right',
-    panels: [
-      { x: 0, y: 0, w: 0.56, h: 0.25 - GUTTER / 2 },
-      { x: 0, y: 0.25 + GUTTER / 2, w: 0.56, h: 0.25 - GUTTER / 2 },
-      { x: 0, y: 0.5 + GUTTER / 2, w: 0.56, h: 0.25 - GUTTER / 2 },
-      { x: 0, y: 0.75 + GUTTER / 2, w: 0.56, h: 0.25 - GUTTER / 2 },
-    ],
-    caption: { x: 0.56 + GUTTER, y: 0, w: 1 - 0.56 - GUTTER, h: 1 },
-    vertical: true,
-  },
-};
-
-// The layout names, in the order the editor shows them.
-export const LAYOUT_NAMES = Object.keys(LAYOUTS);
-
-// Return the layout for a name, falling back to the hero layout.
-export function getLayout(name) {
-  return LAYOUTS[name] ?? LAYOUTS.hero;
-}
-
-// Turn a fractional rect into poster pixels.
-export function toPixels(rect, width, height) {
-  return {
-    x: rect.x * width,
-    y: rect.y * height,
-    w: rect.w * width,
-    h: rect.h * height,
-  };
+/** The panels and the caption band of a poster of `w` by `h` pixels. */
+export function posterGeometry(layout, w, h) {
+  const bandH = Math.round(h * 0.26);
+  const photoH = h - bandH;
+  const gap = Math.max(2, Math.round(Math.min(w, h) * 0.008));
+  const panels = [];
+  if (layout === 'hero') {
+    // One photo, full-bleed across the photo area.
+    panels.push({ x: 0, y: 0, w, h: photoH });
+    panels.push({ x: 0, y: 0, w: 0, h: 0 });
+    panels.push({ x: 0, y: 0, w: 0, h: 0 });
+    panels.push({ x: 0, y: 0, w: 0, h: 0 });
+  } else if (layout === 'strip') {
+    // Four horizontal strips, stacked.
+    const rh = Math.floor((photoH - gap * 3) / 4);
+    for (let i = 0; i < 4; i++) {
+      panels.push({ x: 0, y: i * (rh + gap), w, h: rh });
+    }
+  } else {
+    // Four panels: a two-by-two grid.
+    const cw = Math.floor((w - gap) / 2);
+    const rh = Math.floor((photoH - gap) / 2);
+    panels.push({ x: 0, y: 0, w: cw, h: rh });
+    panels.push({ x: cw + gap, y: 0, w: w - cw - gap, h: rh });
+    panels.push({ x: 0, y: rh + gap, w: cw, h: photoH - rh - gap });
+    panels.push({ x: cw + gap, y: rh + gap, w: w - cw - gap, h: photoH - rh - gap });
+  }
+  return { panels, band: { x: 0, y: photoH, w, h: bandH } };
 }

@@ -4,36 +4,49 @@
 
 # Neon Coast Cover Studio
 
-A web app that turns a photo and a caption into GTA-style cover art — the multi-panel poster look with bold lettering and a Vice City sunset or neon colour grade — and exports it as a PNG to share.
+A web app that turns a photo and a caption into cover art in the style of
+GTA 6's posters: several photo panels over a sunset or neon city, a gold
+tagline, and one huge bold caption. Everything runs in the browser — no
+server, no upload, no network request at all.
 
-## What it does
+## How it works
 
-- **Any photo**: pick your own photos from your machine (they are read locally and never uploaded), or load the 4 built-in sample photos.
-- **Panels**: Hero (one big photo), Four panels (a 2 by 2 grid) or Film strip (four stacked frames). Pick a panel, choose its photo, zoom it, and drag it inside the panel to frame it.
-- **Words**: an editable gold tagline and a big bold caption (Bebas Neue), with controls for colour, size and outline.
-- **Grades**: Sunset, Neon, Gold hour or none, applied to the preview and the export.
-- **Export**: one click gives you a PNG in the common post sizes — 1080 × 1080, 1080 × 1350 or 1920 × 1080.
-
-Everything is original: no Rockstar Games logo, artwork or font. The fonts are Bebas Neue and Archivo Black, both under the SIL Open Font License, shipped as files under `app/fonts/`.
+1. **Photos** — pick photos from your machine (they never leave it) or load
+   the 4 sample photos. Click a photo in the tray, then a panel, to place it
+   — or press *Fill all panels*.
+2. **Panels** — choose a layout: Hero (one big photo), Four panels (a 2×2
+   grid), or Film strip (four stacked strips). Pick a panel, choose which
+   photo it shows, zoom it from 100% to 300%, and drag the photo inside its
+   panel to frame it.
+3. **Words** — edit the tagline and the caption, and tune the caption's
+   colour, size, and dark outline.
+4. **Grade** — pick a colour grade: Sunset, Neon, Gold hour, or none.
+5. **Export** — one click writes a PNG at 1080 × 1080, 1080 × 1350, or
+   1920 × 1080. The live preview draws exactly what the export writes.
 
 ## Run it
 
-Serve `app/` with any static server and open `app/index.html` in a desktop browser. With Node 22, from the kit folder:
+Serve the `app/` folder with any static server and open `index.html` in a
+desktop browser:
 
+```sh
+npx serve app
+# or
+python3 -m http.server --directory app 8080
 ```
-node serve.ts
-```
 
-then open http://localhost:8080. The app makes no network requests.
+The entry program copies the app into the output folder for the bounty:
 
-## Hand it in
-
-```
+```sh
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-That copies `app/` and `screenshots/` to the output directory and writes `dossier.json` there.
+## Credits
 
-## Referral
+- Fonts: Bebas Neue and Archivo Black, both under the SIL Open Font
+  License 1.1 (see `app/fonts/`).
+- Sample photos: the two kit samples plus two images made with an image
+  model for this entry (no real person's photo, no Rockstar artwork).
 
-Made with [make.fun](https://make.fun/r/wd2jkb95) — build AI agents and programs, enter them in competitions, and get scored and ranked in the open. Referral code: `wd2jkb95`.
+Made for the make.fun bounty [gta6-cover-art-01](https://make.fun/bounty/gta6-cover-art-01).
+If make.fun is new to you, start here: https://make.fun/r/wd2jkb95

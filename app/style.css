@@ -1,301 +1,183 @@
-/* Neon Coast Cover Studio — editor styles.
-   Dark two-column studio: controls on the left, live poster preview
-   pinned to the right. All type in the editor is Archivo Black for
-   headings and buttons, Bebas Neue for the poster caption (drawn on
-   the canvas); body copy is the system stack. */
-
-/* ---- Fonts (shipped with the app, never fetched) ---- */
+/* Neon Coast Cover Studio: a dark editor, a controls column on the left and
+   a sticky live preview on the right. The poster itself is drawn on a
+   canvas, so the page only styles the chrome around it. */
 
 @font-face {
-  font-family: "Bebas Neue";
-  src: url("./fonts/BebasNeue-Regular.ttf") format("truetype");
+  font-family: 'Bebas Neue';
+  src: url('./fonts/BebasNeue-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
-  font-family: "Archivo Black";
-  src: url("./fonts/ArchivoBlack-Regular.ttf") format("truetype");
+  font-family: 'Archivo Black';
+  src: url('./fonts/ArchivoBlack-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-
-/* ---- Palette ---- */
 
 :root {
-  --bg: #0d0a14;        /* page background */
-  --panel: #171221;     /* controls column */
-  --panel-2: #1f1830;   /* fields and buttons */
-  --line: #2c2344;      /* hairlines and borders */
-  --text: #f2eefc;      /* main text */
-  --muted: #a99ec7;     /* secondary text */
-  --gold: #f5b942;      /* headings, accents, selection */
-  --pink: #ff2e88;      /* export actions, sunset glow */
-  --cyan: #22d3ee;      /* status text, neon glow */
+  --bg: #0d0a14;
+  --bg-soft: #171226;
+  --panel: #221a33;
+  --line: #3a2f52;
+  --text: #f4f1fa;
+  --muted: #a99ec2;
+  --gold: #f5b942;
+  --gold-ink: #241a05;
 }
-
-/* ---- Base ---- */
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
-  padding: 0;
-}
-
-body {
+  min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 15px;
-  line-height: 1.45;
+  font: 15px/1.45 system-ui, -apple-system, sans-serif;
 }
-
-/* Keyboard focus must always be visible: a gold ring on every
-   interactive control, so keyboard users can follow where they are. */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-.file-label:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-
-/* ---- Two-column studio ---- */
 
 .studio {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 24px;
 }
 
-/* ---- Left column: the controls ---- */
+/* ---- controls column ---- */
 
 .controls {
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  padding: 20px 18px 28px;
-  overflow-y: auto;
+  width: 340px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
 }
 
 .controls header h1 {
-  font-family: "Archivo Black", sans-serif;
-  font-size: 24px;
-  line-height: 1.1;
+  margin: 0;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 30px;
+  line-height: 1.05;
   letter-spacing: 0.5px;
-  margin: 0 0 6px;
 }
+.controls header h1 span { color: var(--gold); }
+.controls header p { margin: 10px 0 0; color: var(--muted); }
 
-.controls header h1 span {
-  display: block;
-  color: var(--gold);
-}
-
-.controls header p {
-  color: var(--muted);
-  font-size: 14px;
-  margin: 0 0 4px;
-}
-
-.controls section {
-  border-top: 1px solid var(--line);
-  margin-top: 18px;
-  padding-top: 14px;
-}
-
+.controls section { display: flex; flex-direction: column; gap: 12px; }
 .controls h2 {
-  font-family: "Archivo Black", sans-serif;
+  margin: 0;
+  font-family: 'Archivo Black', sans-serif;
   font-size: 13px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--gold);
-  margin: 0 0 10px;
 }
 
-/* ---- Fields ---- */
-
-label {
-  display: block;
-  margin: 10px 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-label input[type="text"],
-label select {
-  display: block;
-  width: 100%;
-  margin-top: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-2);
-  color: var(--text);
-  font-size: 15px;
-}
-
-label input[type="color"] {
-  display: block;
-  width: 64px;
-  height: 36px;
-  margin-top: 4px;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-2);
-}
-
-label input[type="range"] {
-  width: 78%;
-  vertical-align: middle;
-}
-
-label.check { color: var(--text); }
-
-/* ---- Buttons and rows ---- */
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
 
 button {
-  font-family: "Archivo Black", sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  padding: 9px 12px;
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel-2);
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
 }
-
 button:hover { border-color: var(--gold); }
+button.active { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
 
-button.active {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: #1a1206;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.row button { flex: 1 1 auto; }
-
-.export-row button {
-  background: var(--pink);
-  border-color: var(--pink);
-  color: #fff;
-}
-
-.export-row button:hover { border-color: #fff; }
-
-#loadSamples {
-  width: 100%;
-  margin-top: 8px;
-}
-
-/* ---- Photo picker ---- */
+#loadSamples, #fillAll { width: 100%; }
 
 .file-label {
   display: block;
-  padding: 10px 12px;
+  text-align: center;
+  font-weight: 700;
+  padding: 10px 14px;
   border: 1px dashed var(--gold);
   border-radius: 8px;
-  text-align: center;
   color: var(--gold);
   cursor: pointer;
 }
 
-.file-label input { display: none; }
+label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+label.check { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
 
-.tray {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 10px;
+input[type="text"], select {
+  font: inherit;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text);
 }
+input[type="color"] {
+  padding: 2px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-soft);
+}
+input[type="range"] { width: 100%; accent-color: var(--gold); }
 
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+#status { margin: 0; color: var(--muted); min-height: 1.2em; }
+
+.tray { display: flex; flex-wrap: wrap; gap: 8px; }
 .thumb {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 6px;
+  padding: 0;
   border: 2px solid transparent;
-  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 72px;
+  height: 72px;
+  background: var(--panel);
 }
-
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .thumb.selected { border-color: var(--gold); }
 
-/* ---- Helper text ---- */
-
-.hint, .preview-note {
-  color: var(--muted);
-  font-size: 13px;
+button:focus-visible, input:focus-visible, select:focus-visible, .file-label:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
 }
 
-#status {
-  color: var(--cyan);
-  font-size: 13px;
-  min-height: 20px;
-}
-
-/* ---- Right column: the live preview ---- */
+/* ---- live preview ---- */
 
 .preview {
+  flex: 1;
+  min-width: 0;
   position: sticky;
   top: 0;
   height: 100vh;
-  align-self: start;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 24px;
-  background:
-    radial-gradient(900px 500px at 70% 10%, rgba(255, 46, 136, 0.14), transparent 60%),
-    radial-gradient(700px 500px at 20% 90%, rgba(34, 211, 238, 0.1), transparent 60%),
-    var(--bg);
+  padding: 12px 0;
 }
-
-#poster {
-  width: auto;
-  height: auto;
-  max-width: min(100%, 78vh);
-  max-height: 82vh;
-  border-radius: 4px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  cursor: grab;
+.preview canvas {
+  max-width: 100%;
+  max-height: calc(100vh - 64px);
+  background: #0d0a14;
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
   touch-action: none;
 }
 
-#poster:active { cursor: grabbing; }
-
-/* ---- Screenshot scenes: the cover alone, no editor chrome ---- */
-
-body.shot-cover { background: #0b0612; }
-
-body.shot-cover .studio {
-  display: block;
-  min-height: 0;
-}
+/* ---- screenshot scenes: the poster alone, edge to edge ---- */
 
 body.shot-cover .controls,
-body.shot-cover .preview-note { display: none; }
-
-body.shot-cover .preview {
-  padding: 0;
-  background: #0b0612;
-}
-
-body.shot-cover #poster {
+body.shot-cover .preview .hint { display: none; }
+body.shot-cover .studio { padding: 0; gap: 0; }
+body.shot-cover .preview { height: 100vh; padding: 0; }
+body.shot-cover canvas {
+  width: 100vw;
+  height: 100vh;
   max-width: none;
   max-height: none;
-  border-radius: 0;
   box-shadow: none;
 }

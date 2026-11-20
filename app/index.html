@@ -8,93 +8,81 @@
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div class="studio">
-  <aside class="controls" aria-label="Cover controls">
+<main class="studio">
+  <section class="controls" aria-label="Cover controls">
     <header>
-      <h1>Neon Coast <span>Cover Studio</span></h1>
+      <h1>Neon Coast<br><span>Cover Studio</span></h1>
       <p>Turn a photo and a caption into a poster, right in your browser. Nothing is uploaded.</p>
     </header>
 
     <section>
       <h2>1 · Photos</h2>
-      <label class="file-label">Choose photos
-        <input id="photoFiles" type="file" accept="image/*" multiple>
-      </label>
+      <label class="file-label" for="fileInput">Choose photos</label>
+      <input id="fileInput" type="file" accept="image/*" multiple hidden>
       <button id="loadSamples" type="button">Load the 4 sample photos</button>
-      <div id="tray" class="tray" aria-label="Photo tray"></div>
+      <div id="tray" class="tray" role="listbox" aria-label="Photos"></div>
     </section>
 
     <section>
       <h2>2 · Panels</h2>
       <div class="row" id="layoutRow" role="group" aria-label="Layout">
-        <button type="button" data-layout="hero" class="active">Hero</button>
-        <button type="button" data-layout="four">Four panels</button>
-        <button type="button" data-layout="strip">Film strip</button>
+        <button type="button" class="layout-btn" data-layout="hero">Hero</button>
+        <button type="button" class="layout-btn" data-layout="four">Four panels</button>
+        <button type="button" class="layout-btn" data-layout="strip">Film strip</button>
       </div>
       <div class="row" id="panelRow" role="group" aria-label="Panel">
-        <button type="button" data-panel="0" class="active">Panel 1</button>
-        <button type="button" data-panel="1">Panel 2</button>
-        <button type="button" data-panel="2">Panel 3</button>
-        <button type="button" data-panel="3">Panel 4</button>
+        <button type="button" class="panel-btn" data-panel="0">Panel 1</button>
+        <button type="button" class="panel-btn" data-panel="1">Panel 2</button>
+        <button type="button" class="panel-btn" data-panel="2">Panel 3</button>
+        <button type="button" class="panel-btn" data-panel="3">Panel 4</button>
       </div>
+      <button id="fillAll" type="button">Fill all panels</button>
       <label>Photo in this panel
-        <select id="panelPhoto"></select>
+        <select id="photoSelect"></select>
       </label>
-      <label>Zoom
+      <label>Zoom <span id="zoomLabel">100%</span>
         <input id="zoom" type="range" min="100" max="300" value="100">
-        <span id="zoomValue">100%</span>
       </label>
       <p class="hint">Drag the photo inside its panel to frame it.</p>
     </section>
 
     <section>
       <h2>3 · Words</h2>
-      <label>Tagline
-        <input id="tagline" type="text" value="NEON COAST" maxlength="24">
+      <label>Tagline <input id="tagline" type="text" maxlength="30" value="Neon Coast"></label>
+      <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
+      <label>Caption colour <input id="captionColor" type="color" value="#ffffff"></label>
+      <label>Caption size <span id="sizeLabel">100%</span>
+        <input id="captionSize" type="range" min="50" max="150" value="100">
       </label>
-      <label>Caption
-        <input id="caption" type="text" value="SUNSET HEIST" maxlength="30">
-      </label>
-      <label>Caption colour
-        <input id="captionColor" type="color" value="#ffffff">
-      </label>
-      <label>Caption size
-        <input id="captionSize" type="range" min="70" max="140" value="100">
-      </label>
-      <label class="check"><input id="captionOutline" type="checkbox" checked> Outline</label>
+      <label class="check"><input id="outline" type="checkbox" checked> Dark outline on the caption</label>
     </section>
 
     <section>
       <h2>4 · Grade</h2>
       <div class="row" id="gradeRow" role="group" aria-label="Colour grade">
-        <button type="button" data-grade="sunset" class="active">Sunset</button>
-        <button type="button" data-grade="neon">Neon</button>
-        <button type="button" data-grade="gold">Gold hour</button>
-        <button type="button" data-grade="none">None</button>
+        <button type="button" class="grade-btn" data-grade="sunset">Sunset</button>
+        <button type="button" class="grade-btn" data-grade="neon">Neon</button>
+        <button type="button" class="grade-btn" data-grade="gold">Gold hour</button>
+        <button type="button" class="grade-btn" data-grade="none">None</button>
       </div>
     </section>
 
     <section>
       <h2>5 · Export</h2>
-      <div class="row" id="sizeRow" role="group" aria-label="Poster size">
-        <button type="button" data-w="1080" data-h="1080" class="active">1080 × 1080</button>
-        <button type="button" data-w="1080" data-h="1350">1080 × 1350</button>
-        <button type="button" data-w="1920" data-h="1080">1920 × 1080</button>
-      </div>
-      <div class="row export-row">
-        <button id="exportSquare" type="button">Export 1080 × 1080</button>
-        <button id="exportPortrait" type="button">Export 1080 × 1350</button>
-        <button id="exportWide" type="button">Export 1920 × 1080</button>
+      <div class="stack">
+        <button type="button" class="export-btn" data-w="1080" data-h="1080">PNG 1080 × 1080</button>
+        <button type="button" class="export-btn" data-w="1080" data-h="1350">PNG 1080 × 1350</button>
+        <button type="button" class="export-btn" data-w="1920" data-h="1080">PNG 1920 × 1080</button>
       </div>
       <p id="status" role="status"></p>
     </section>
-  </aside>
+  </section>
 
   <section class="preview" aria-label="Live preview">
-    <canvas id="poster" width="1080" height="1080"></canvas>
-    <p class="preview-note">Drag a photo inside its panel to frame it — what you see is what exports.</p>
+    <canvas id="preview" width="1080" height="1080"></canvas>
+    <p class="hint">Drag a photo inside its panel to frame it — what you see is what exports.</p>
   </section>
-</div>
+</main>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
